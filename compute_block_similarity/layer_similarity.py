@@ -77,22 +77,6 @@ def main(model_path: str, auth_token: str, dataset: str, dataset_column: str, ba
     # Calculate average distances for each block
     average_distances = [np.mean(block_distances) for block_distances in all_distances]
 
-    # Calculate minimum difference section
-    print(average_distances)
-
-    threshold = 16 # 레이어 구간 threshold
-    min_mean_distance = 999999999999999
-    min_section_start = 0
-    for i in range(len(average_distances)-threshold+1):
-        section = np.array(average_distances[i:i+threshold])
-        mean_dis = section.mean()
-        
-        if mean_dis < min_mean_distance:
-            min_mean_distance = mean_dis
-            min_section_start = i
-    
-    print(f"minimum section: {min_section_start} ~ {min_section_start+threshold-1}")
-
     # Write the average distances to a CSV file and compute the minimum average distance
     min_distance = float('inf')  # Initialize with infinity
     min_distance_layer = 0  # Initialize with an impossible value
