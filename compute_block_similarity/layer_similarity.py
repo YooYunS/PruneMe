@@ -19,7 +19,7 @@ torch.manual_seed(42)
 np.random.seed(42)
 
 
-def main(model_path: str, dataset: str, dataset_column: str, batch_size: int, max_length: int,
+def main(model_path: str, auth_token: str, dataset: str, dataset_column: str, batch_size: int, max_length: int,
          layers_to_skip: int, dataset_size: Optional[int] = None, dataset_subset: Optional[str] = "eval"):
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -29,11 +29,12 @@ def main(model_path: str, dataset: str, dataset_column: str, batch_size: int, ma
                                             bnb_4bit_use_double_quant=True,
                                             bnb_4bit_quant_type="nf4",
                                             bnb_4bit_compute_dtype=torch.bfloat16)
-    
+
     model = AutoModelForCausalLM.from_pretrained(model_path,  
                                                  device_map="auto", 
                                                  quantization_config=quantization_config, 
-                                                 output_hidden_states=True)
+                                                 output_hidden_states=True,
+                                                 use_auth_token=auth_token)
     
     tokenizer = AutoTokenizer.from_pretrained(model_path)
 
@@ -76,6 +77,22 @@ def main(model_path: str, dataset: str, dataset_column: str, batch_size: int, ma
     # Calculate average distances for each block
     average_distances = [np.mean(block_distances) for block_distances in all_distances]
 
+    # Calculate minimum difference section
+    print(average_distances)
+
+    threshold = 16 # 레이어 구간 threshold
+    min_mean_distance = 999999999999999
+    min_section_start = 0
+    for i in range(len(average_distances)-threshold+1):
+        section = np.array(average_distances[i:i+threshold])
+        mean_dis = section.mean()
+        
+        if mean_dis < min_mean_distance:
+            min_mean_distance = mean_dis
+            min_section_start = i
+    
+    print(f"minimum section: {min_section_start} ~ {min_section_start+threshold-1}")
+
     # Write the average distances to a CSV file and compute the minimum average distance
     min_distance = float('inf')  # Initialize with infinity
     min_distance_layer = 0  # Initialize with an impossible value
@@ -105,6 +122,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Run model analysis.")
     parser.add_argument("--model_path", type=str, required=True, help="Path to the model.")
+    parser.add_argument("--auth_token", type=str, default="")
     parser.add_argument("--dataset", type=str, required=True, help="Name of the dataset.")
     parser.add_argument("--dataset_column", type=str, required=True, help="The specific column of the dataset to use.")
     parser.add_argument("--batch_size", type=int, required=True, help="Batch size for processing.")
