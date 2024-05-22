@@ -34,9 +34,9 @@ def main(model_path: str, auth_token: str, dataset: str, dataset_column: str, ba
                                                  device_map="auto", 
                                                  quantization_config=quantization_config, 
                                                  output_hidden_states=True,
-                                                 use_auth_token=auth_token)
+                                                 token=auth_token)
     
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    tokenizer = AutoTokenizer.from_pretrained(model_path, token=auth_token)
 
     if not tokenizer.pad_token:
         tokenizer.pad_token = tokenizer.eos_token
